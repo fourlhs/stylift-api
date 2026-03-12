@@ -75,12 +75,16 @@ def save_checkpoint(tag: str):
         'val_loss':  last_val_loss,
     }, path)
     print(f"  ✓ saved {path}")
-
+    
 def load_checkpoint(path: str):
     ckpt = torch.load(path, map_location=device)
-    model.load_state_dict(ckpt['model'])
-    optimizer.load_state_dict(ckpt['optimizer'])
     
+    # Έλεγχος αν το μοντέλο είναι compiled (torch.compile)
+    # Αν είναι, φορτώνουμε στο εσωτερικό '_orig_mod'. Αν όχι, κανονικά στο model.
+    raw_model = model._orig_mod if hasattr(model, '_orig_mod') else model
+    raw_model.load_state_dict(ckpt['model'])
+    
+    optimizer.load_state_dict(ckpt['optimizer'])
     start_step = ckpt['step']
     return start_step, ckpt.get('val_loss', float('inf'))
 
