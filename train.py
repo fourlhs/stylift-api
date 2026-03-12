@@ -18,9 +18,9 @@ block_size    = 64
 eval_iters    = 300
 eval_interval = 500
 max_steps     = 240000
-learning_rate = 5.8e-4
+learning_rate = 6e-4
 min_lr        = 5e-5
-warmup_steps  = 200
+warmup_steps  = 1000
 grad_clip     = 1.0
 drive_path    = CHECKPOINT_DIR
 
