@@ -13,7 +13,7 @@ CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "checkpoints")
 # hyperparameters
 device        = 'cuda' if torch.cuda.is_available() else 'cpu'
 vocab_size    = 50257       # GPT-2 tokenizer (tiktoken)
-batch_size    = 128
+batch_size    = 64
 block_size    = 64
 eval_iters    = 300
 eval_interval = 500
