@@ -13,14 +13,14 @@ CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "checkpoints")
 # hyperparameters
 device        = 'cuda' if torch.cuda.is_available() else 'cpu'
 vocab_size    = 50257       # GPT-2 tokenizer (tiktoken)
-batch_size    = 256
+batch_size    = 128
 block_size    = 64
 eval_iters    = 300
-eval_interval = 2000
+eval_interval = 500
 max_steps     = 61000
-learning_rate = 6e-4
-min_lr        = 6e-5
-warmup_steps  = 1000
+learning_rate = 4e-4
+min_lr        = 3e-5
+warmup_steps  = 200
 grad_clip     = 1.0
 drive_path    = CHECKPOINT_DIR
 
@@ -80,14 +80,18 @@ def load_checkpoint(path: str):
     ckpt = torch.load(path, map_location=device)
     model.load_state_dict(ckpt['model'])
     optimizer.load_state_dict(ckpt['optimizer'])
-    return ckpt['step'], ckpt.get('val_loss', float('inf'))
+    
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = learning_rate 
+    
+    start_step = ckpt['step']
+    return start_step, ckpt.get('val_loss', float('inf'))
 
 # model + optimizer
 model     = GPT(vocab_size).to(device)
 model     = torch.compile(model)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate,
                               betas=(0.9, 0.95), weight_decay=0.1)
-scaler    = GradScaler()
 
 n_params = sum(p.numel() for p in model.parameters())
 print(f"parameters: {n_params/1e6:.2f}M | device: {device}")
@@ -133,10 +137,9 @@ for step in range(start_step, max_steps):
     optimizer.zero_grad()
     with autocast(dtype=torch.bfloat16):
         logits, loss = model(x, y)
-    scaler.scale(loss).backward()
-    scaler.unscale_(optimizer)
+        
+    loss.backward()
     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-    scaler.step(optimizer)
-    scaler.update()
+    optimizer.step() 
 
 print("training complete.")
