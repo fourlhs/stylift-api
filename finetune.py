@@ -3,6 +3,7 @@ import math
 import os
 import numpy as np
 import torch
+from torch.cuda.amp import autocast, GradScaler
 from model import GPT
 
 # paths
@@ -80,8 +81,10 @@ for n in SUBSETS:
     # Fresh model from base weights every run
     model = GPT(vocab_size).to(device)
     load_base(model)
+    model = torch.compile(model)
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate,
                                   betas=(0.9, 0.95), weight_decay=0.1)
+    scaler = GradScaler()
 
     # Baseline perplexity before any fine-tuning
     baseline_ppl = perplexity(model, wikitext_val)
@@ -129,13 +132,16 @@ for n in SUBSETS:
                     'step':  step,
                 }, f'{drive_path}/finetune_{tag}_best.pt')
 
-        # Forward + backward
-        x, y         = get_batch(slang_data)
+        # Forward + backward with bfloat16
+        x, y = get_batch(slang_data)
         optimizer.zero_grad()
-        logits, loss = model(x, y)
-        loss.backward()
+        with autocast(dtype=torch.bfloat16):
+            logits, loss = model(x, y)
+        scaler.scale(loss).backward()
+        scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-        optimizer.step()
+        scaler.step(optimizer)
+        scaler.update()
 
     all_results[tag] = results
     print(f"  done | best slang loss {best_loss:.4f} | "

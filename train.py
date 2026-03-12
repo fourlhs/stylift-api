@@ -2,6 +2,7 @@ import math
 import os
 import numpy as np
 import torch
+from torch.cuda.amp import autocast, GradScaler
 from model import GPT
 
 # paths
@@ -12,14 +13,14 @@ CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", "checkpoints")
 # hyperparameters
 device        = 'cuda' if torch.cuda.is_available() else 'cpu'
 vocab_size    = 50257       # GPT-2 tokenizer (tiktoken)
-batch_size    = 32
+batch_size    = 256
 block_size    = 64
 eval_iters    = 300
 eval_interval = 2000
-max_steps     = 200000
-learning_rate = 3e-4
-min_lr        = 3e-5
-warmup_steps  = 100
+max_steps     = 61000
+learning_rate = 6e-4
+min_lr        = 6e-5
+warmup_steps  = 1000
 grad_clip     = 1.0
 drive_path    = CHECKPOINT_DIR
 
@@ -83,8 +84,10 @@ def load_checkpoint(path: str):
 
 # model + optimizer
 model     = GPT(vocab_size).to(device)
+model     = torch.compile(model)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate,
                               betas=(0.9, 0.95), weight_decay=0.1)
+scaler    = GradScaler()
 
 n_params = sum(p.numel() for p in model.parameters())
 print(f"parameters: {n_params/1e6:.2f}M | device: {device}")
@@ -125,12 +128,15 @@ for step in range(start_step, max_steps):
         # Always overwrite latest for easy resume
         save_checkpoint('latest')
 
-    # Forward + backward
-    x, y         = get_batch('train')
-    optimizer.zero_grad()               # zero before forward, not after
-    logits, loss = model(x, y)
-    loss.backward()
+    # Forward + backward with bfloat16
+    x, y = get_batch('train')
+    optimizer.zero_grad()
+    with autocast(dtype=torch.bfloat16):
+        logits, loss = model(x, y)
+    scaler.scale(loss).backward()
+    scaler.unscale_(optimizer)
     torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-    optimizer.step()
+    scaler.step(optimizer)
+    scaler.update()
 
 print("training complete.")
