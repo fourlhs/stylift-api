@@ -77,9 +77,9 @@ def generate(prompt, max_tokens=60, temperature=0.9, top_p=0.6):
         generated = generated.replace('<|endoftext|>', '')
         generated = generated.strip()
 
-        # 2. Skip first sentence (often fragment)
+        # 2. Skip first sentence (often fragment) only if there are multiple
         sentences = generated.split('. ')
-        if len(sentences) > 1:
+        if len(sentences) > 2:  # Only skip if there are at least 2 complete sentences
             generated = '. '.join(sentences[1:])
 
         # 3. Keep first ~180 characters and cut at natural boundary
