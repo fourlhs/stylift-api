@@ -65,8 +65,8 @@ def generate(prompt, max_tokens=60, temperature=0.9, top_p=0.6):
 
         # Generate
         with torch.no_grad():
-            idx = model.generate(idx, max_new_tokens=max_tokens,
-                                temperature=temperature, top_p=top_p)
+            idx = model.generate(idx, max_new_tokens=int(max_tokens),
+                                temperature=float(temperature), top_p=float(top_p))
 
         # Decode only the newly generated tokens
         generated_tokens = idx[0, num_prompt_tokens:].tolist()
