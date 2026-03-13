@@ -34,24 +34,39 @@ if not ckpt_path:
     try:
         url = "https://github.com/fourlhs/nano-gpt-z/releases/download/v1.0/finetune_genz_1000k_best.pt"
         print(f"Downloading: {url}")
-        urlretrieve(url, ckpt_path, timeout=30)
+        urlretrieve(url, ckpt_path)
         print(f"✓ Downloaded to {ckpt_path}")
     except Exception as e:
         print(f"✗ Download failed: {e}")
+        ckpt_path = None
 
-ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
-model = GPT(vocab_size=50257)
-state = ckpt['model']
-state = {k.replace('_orig_mod.', ''): v for k, v in state.items()}
-model.load_state_dict(state)
-model.eval()
-enc = tiktoken.encoding_for_model('gpt2')
-print("✅ Model loaded")
+# Load model if checkpoint exists
+model = None
+enc = None
+if ckpt_path and os.path.exists(ckpt_path):
+    try:
+        ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
+        model = GPT(vocab_size=50257)
+        state = ckpt['model']
+        state = {k.replace('_orig_mod.', ''): v for k, v in state.items()}
+        model.load_state_dict(state)
+        model.eval()
+        enc = tiktoken.encoding_for_model('gpt2')
+        print("✅ Model loaded")
+    except Exception as e:
+        print(f"✗ Model loading failed: {e}")
+        model = None
+        enc = None
+else:
+    print("✗ Checkpoint file not available")
 
 app = Flask(__name__)
 
 def generate(prompt, max_tokens=60, temperature=0.9, top_p=0.6):
     """Generate text from prompt."""
+    if not model or not enc:
+        raise RuntimeError("Model not loaded. Upload checkpoint to GitHub release: https://github.com/fourlhs/nano-gpt-z/releases/new")
+
     print(f"[GENERATE] Prompt: '{prompt}'")
 
     # Normalize all-caps input to lowercase
