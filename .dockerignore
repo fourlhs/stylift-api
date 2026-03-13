@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.pytest_cache
+.venv
+venv
+
+# Training/evaluation scripts (not needed in Docker)
+train.py
+finetune.py
+evaluate.py
+inference/
+
+# Data files (not needed)
+data/
+*.txt
+*.csv
+
+# Documentation
+*.md
+RUNPOD.md
+HF_SPACES.md
+
+# OS
+.DS_Store
+.env
+.env.local
+
+# IDE
+.vscode
+.idea
+*.swp
