@@ -54,19 +54,23 @@ print("✅ Model loaded")
 def generate(prompt, max_tokens=60, temperature=0.9, top_p=0.6):
     """Generate text from prompt."""
     try:
+        print(f"[GENERATE] Prompt: '{prompt}'")
         # Normalize all-caps input to lowercase
         if prompt.isupper() and len(prompt) > 1:
             prompt = prompt.lower()
 
         # Tokenize
+        print("[GENERATE] Encoding...")
         tokens = enc.encode(prompt)
         num_prompt_tokens = len(tokens)
         idx = torch.tensor(tokens).unsqueeze(0)
 
         # Generate
+        print(f"[GENERATE] Generating {int(max_tokens)} tokens...")
         with torch.no_grad():
             idx = model.generate(idx, max_new_tokens=int(max_tokens),
                                 temperature=float(temperature), top_p=float(top_p))
+        print("[GENERATE] Done")
 
         # Decode only the newly generated tokens
         generated_tokens = idx[0, num_prompt_tokens:].tolist()
