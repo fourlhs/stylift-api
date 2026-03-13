@@ -64,6 +64,11 @@ def load_base(model):
     ckpt = torch.load(path, map_location=device)
     # train.py saves {'model': ..., 'optimizer': ..., 'step': ...}
     state = ckpt['model'] if isinstance(ckpt, dict) and 'model' in ckpt else ckpt
+    
+    clean_state = {}
+    for k, v in state.items():
+        new_key = k.replace('_orig_mod.', '') if k.startswith('_orig_mod.') else k
+        clean_state[new_key] = v
     model.load_state_dict(state)
 
 # WikiText validation data (measures forgetting)
