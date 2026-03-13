@@ -6,10 +6,10 @@ import torch
 import tiktoken
 import gradio as gr
 from model import GPT
+from urllib.request import urlretrieve
 
 # Load model
 print("Loading model...")
-print(f"Current directory: {os.getcwd()}")
 
 # Try multiple paths
 ckpt_paths = [
@@ -27,11 +27,20 @@ for path in ckpt_paths:
         break
 
 if not ckpt_path:
-    raise FileNotFoundError(
-        f"Checkpoint not found. Looking for: finetune_genz_1000k_best.pt\n"
-        f"Expected in: {ckpt_paths}\n"
-        f"Files in /app: {os.listdir('/app')}"
-    )
+    print("Checkpoint not found locally. Downloading from GitHub...")
+    os.makedirs('checkpoints', exist_ok=True)
+    ckpt_path = 'checkpoints/finetune_genz_1000k_best.pt'
+
+    try:
+        url = "https://github.com/fourlhs/nano-gpt-z/releases/download/v1.0/finetune_genz_1000k_best.pt"
+        print(f"Downloading: {url}")
+        urlretrieve(url, ckpt_path)
+        print(f"✓ Downloaded to {ckpt_path}")
+    except Exception as e:
+        raise FileNotFoundError(
+            f"Checkpoint not found and download failed: {e}\n"
+            f"Upload to GitHub release: https://github.com/fourlhs/nano-gpt-z/releases/new"
+        )
 
 ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
 model = GPT(vocab_size=50257)
