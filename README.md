@@ -26,6 +26,14 @@ Catastrophic forgetting is immediate and severe. After fine-tuning on just **1k 
 | 500k | 40,518 | +40,260 | 16.5% |
 | 1000k | 39,535 | +39,277 | 19.9% |
 
+### Forgetting Curves
+![Forgetting Curves](paper/results/forgetting_curves.png)
+*WikiText perplexity (log scale) across fine-tuning steps. Each line represents a different fine-tuning set size (1k–1M tokens). Baseline perplexity (dashed line) is quickly exceeded within the first 200 steps.*
+
+### Style-Forgetting Tradeoff
+![Style Tradeoff](paper/results/tradeoff.png)
+*Scatter plot showing the relationship between style shift (Δ, x-axis) and perplexity increase (Δ, y-axis, log scale). Points are labeled by fine-tuning set size. Larger datasets do not reduce forgetting; catastrophic forgetting is inevitable.*
+
 **Key finding:** forgetting is not gradual — it is catastrophic within the first 200 fine-tuning steps, regardless of fine-tuning corpus size. Style shift plateaus around 18-20% across all subset sizes, suggesting a ceiling on how much slang a 17M parameter model can adopt from this corpus.
 
 ---
@@ -85,6 +93,14 @@ RunPod RTX 4090 recommended. Full pipeline runs in ~2 hours and costs under $1.
 
 ---
 
+## Datasets & Metrics
+
+Raw experiment data:
+- **[results.csv](paper/results/results.csv)** — Final metrics per subset: perplexity, style shift, deltas
+- **[finetune_metrics.json](paper/results/finetune_metrics.json)** — Step-level metrics during fine-tuning: loss, perplexity, forgetting curves
+
+---
+
 ## Repo Structure
 
 ```
@@ -104,8 +120,11 @@ inference/
   bindings.cpp        — Emscripten JS bindings
   build.sh            — compiles to WASM
 paper/results/
-  results.csv         — perplexity + style shift per subset
-  forgetting_curves.csv — step-level curves for all 8 runs
+  results.csv                — perplexity + style shift per subset
+  finetune_metrics.json      — step-level metrics for all 8 runs
+  forgetting_curves.png      — publication-quality forgetting plot
+  tradeoff.png               — style-forgetting tradeoff scatter plot
+plot.py                      — generate figures from metrics & results
 ```
 
 ---
